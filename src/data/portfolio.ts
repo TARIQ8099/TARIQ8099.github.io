@@ -45,10 +45,10 @@ export const socials: Social[] = [
 ];
 
 // Web3Forms access key — submissions get emailed straight to `profile.email`.
-// Get a free key at https://web3forms.com (enter your email, they send it over;
-// no account, 250 submissions/month). Paste it between the quotes.
-// While this is empty the form falls back to opening the visitor's mail app.
-export const contactFormAccessKey = '';
+// Public by design: it only permits sending to the address that registered it,
+// so it is safe in client-side code. Replace it at https://web3forms.com if the
+// address ever changes. Empty string falls back to the visitor's mail app.
+export const contactFormAccessKey = '8d23f328-c61f-45a8-9950-81e569b087f0';
 
 export const languages = [
   { name: 'English', level: 'Proficient' },
