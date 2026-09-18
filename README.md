@@ -47,17 +47,28 @@ linkedin: 'https://linkedin.com/in/your-handle',
 The icon then appears in the landing hero, the contact panel and the footer
 automatically — no layout changes needed.
 
-## How the contact form sends
+## Contact form — one step to finish
 
-The form validates inline, then opens the visitor's mail client with the message
-pre-composed to `zaman.mdtariquz@gmail.com`. That works anywhere with no backend
-and no signup.
+The form is wired to [Web3Forms](https://web3forms.com), which emails submissions
+straight to `zaman.mdtariquz@gmail.com`. **It needs an access key to work.**
 
-If you'd rather receive submissions without the visitor's mail app opening, sign
-up for a free [Formspree](https://formspree.io) or [Web3Forms](https://web3forms.com)
-endpoint and replace the `window.location.href = ...` line in
-[`src/components/Contact.tsx`](src/components/Contact.tsx) with a `fetch` POST to
-that endpoint.
+1. Go to [web3forms.com](https://web3forms.com), enter that email address, and
+   they send you an access key. No account, free, 250 submissions/month.
+2. Paste it into `contactFormAccessKey` in
+   [`src/data/portfolio.ts`](src/data/portfolio.ts).
+3. Commit and push.
+
+**Until the key is set**, the form falls back to opening the visitor's own mail
+app with the message pre-composed. That fallback is deliberately temporary: it
+silently does nothing for anyone without a desktop mail client configured (most
+people, who use webmail), so contacts get lost. Set the key.
+
+The key is safe to commit — Web3Forms access keys are public by design and only
+permit sending to the address that registered them.
+
+Behaviour once configured: inline validation → "Sending…" → either a success
+message with the form cleared, or a failure message showing the email address as
+a clickable fallback, with everything the visitor typed preserved.
 
 ## Deploying (GitHub Pages)
 

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Send, CheckCircle2 } from 'lucide-react';
-import { contactRows, profile } from '../data/portfolio';
+import { Send, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { contactFormAccessKey, contactRows, profile } from '../data/portfolio';
 import { SectionHeading } from './ui/SectionHeading';
 import { SocialIcon } from './ui/SocialIcon';
 
@@ -19,7 +19,7 @@ export function Contact() {
   const reduce = useReducedMotion();
   const [values, setValues] = useState<Fields>(empty);
   const [errors, setErrors] = useState<Partial<Fields>>({});
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
 
   const validate = (v: Fields) => {
     const e: Partial<Fields> = {};
@@ -31,20 +31,47 @@ export function Contact() {
     return e;
   };
 
-  const handleSubmit = (ev: FormEvent) => {
+  const openMailClient = () => {
+    const subject = encodeURIComponent(values.subject);
+    const body = encodeURIComponent(`Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`);
+    window.location.href = `mailto:${profile.email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     const found = validate(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    // Opens the visitor's mail client with the message pre-composed.
-    // To send server-side instead, swap this for a Formspree/Web3Forms POST — see README.
-    const subject = encodeURIComponent(values.subject);
-    const body = encodeURIComponent(
-      `Name: ${values.name}\nEmail: ${values.email}\n\n${values.message}`,
-    );
-    window.location.href = `mailto:${profile.email}?subject=${subject}&body=${body}`;
-    setSent(true);
+    // No key configured yet: fall back to composing in the visitor's mail app.
+    if (!contactFormAccessKey) {
+      openMailClient();
+      setStatus('sent');
+      return;
+    }
+
+    setStatus('sending');
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: contactFormAccessKey,
+          name: values.name,
+          email: values.email,
+          subject: values.subject,
+          message: values.message,
+          from_name: 'Portfolio contact form',
+          botcheck: '',
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Web3Forms responded ${res.status}`);
+      setValues(empty);
+      setStatus('sent');
+    } catch {
+      setStatus('failed');
+    }
   };
 
   return (
@@ -67,7 +94,7 @@ export function Contact() {
           >
             <h3 className="text-xl font-semibold text-navy-900">Send Me a Message</h3>
             <p className="mt-2 text-sm text-navy-700/70">
-              Fill this in and it opens in your mail app, addressed to me.
+              Drop me a message and I'll reply to the email address you leave here.
             </p>
 
             <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-7">
@@ -137,15 +164,23 @@ export function Contact() {
                 whileInView={reduce ? {} : { scale: [1, 1.03, 1] }}
                 viewport={{ once: true, amount: 0.5 }}
                 transition={{ duration: 0.6, delay: 1.3 }}
-                className="group relative w-full cursor-pointer overflow-hidden rounded-full bg-navy-900 px-8 py-4 text-sm font-semibold text-gold-300 transition-colors duration-200 hover:bg-navy-800 sm:w-auto"
+                disabled={status === 'sending'}
+                className="group relative w-full cursor-pointer overflow-hidden rounded-full bg-navy-900 px-8 py-4 text-sm font-semibold text-gold-300 transition-colors duration-200 hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               >
                 <span className="relative z-10 inline-flex items-center gap-2">
-                  {sent ? (
+                  {status === 'sending' && (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                      Sending…
+                    </>
+                  )}
+                  {status === 'sent' && (
                     <>
                       <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                      Opening your mail app…
+                      Message sent
                     </>
-                  ) : (
+                  )}
+                  {(status === 'idle' || status === 'failed') && (
                     <>
                       Send Message
                       <Send className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
@@ -157,6 +192,27 @@ export function Contact() {
                   className="pointer-events-none absolute inset-y-0 -left-full w-1/2 bg-gradient-to-r from-transparent via-white/25 to-transparent group-hover:animate-shimmer"
                 />
               </motion.button>
+
+              <div aria-live="polite">
+                {status === 'sent' && (
+                  <p className="flex items-start gap-2 text-sm text-green-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    Thanks — your message is on its way. I'll get back to you soon.
+                  </p>
+                )}
+                {status === 'failed' && (
+                  <p className="flex items-start gap-2 text-sm text-red-600">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      That didn't go through. Please email me directly at{' '}
+                      <a href={`mailto:${profile.email}`} className="font-medium underline">
+                        {profile.email}
+                      </a>
+                      .
+                    </span>
+                  </p>
+                )}
+              </div>
             </form>
           </motion.div>
 

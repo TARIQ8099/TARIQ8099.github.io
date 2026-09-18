@@ -44,6 +44,12 @@ export const socials: Social[] = [
   { label: 'Email', href: `mailto:${profile.email}`, icon: 'mail' },
 ];
 
+// Web3Forms access key — submissions get emailed straight to `profile.email`.
+// Get a free key at https://web3forms.com (enter your email, they send it over;
+// no account, 250 submissions/month). Paste it between the quotes.
+// While this is empty the form falls back to opening the visitor's mail app.
+export const contactFormAccessKey = '';
+
 export const languages = [
   { name: 'English', level: 'Proficient' },
   { name: 'Bangla', level: 'Native' },
